@@ -56,6 +56,10 @@ client.once('ready', async () => {
         }
     ];
 
+    // Send the role selection message
+    console.log('Bot is ready. Preparing to send role selection message.');
+    roleSelection.sendRoleSelectionMessage(client);
+
     // Register the commands globally or for a specific guild
     await client.application?.commands.set(data);
     console.log('Successfully registered application commands.');
@@ -84,4 +88,4 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-client.login('YOUR_BOT-TOKEN');
+client.login('MTE5NjI3NjA5NjM0NjM1NzgyMg.Gw1Zp5.xQbhRvScMfg6f8hUNGF89-tXWg6IRfarGmgc_A');
