@@ -1,29 +1,29 @@
-// createmessage.js
-const { ChannelType } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 
-async function handle(interaction) {
-    const channel = interaction.options.getChannel('channel');
-    const messageToSend = interaction.options.getString('message');
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('createmessage')
+        .setDescription('Creates a message in a specified channel.')
+        .addChannelOption(option => 
+            option.setName('channel')
+                .setDescription('The channel to send the message to')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('message')
+                .setDescription('The message to send')
+                .setRequired(true)),
+    async execute(interaction) {
+        const channel = interaction.options.getChannel('channel');
+        const messageContent = interaction.options.getString('message');
 
-    // Log channel details for debugging
-    console.log(channel);
-    console.log(`Channel Type: ${channel.type}`);
+        // Ensure the channel is a guild text channel
+        if (!channel || channel.type !== 'GUILD_TEXT') {
+            await interaction.reply({ content: 'Please select a valid text channel.', ephemeral: false });
+            return;
+        }
 
-    // Check if the selected channel is a text channel
-    if (!channel || channel.type !== ChannelType.GuildText) {
-        await interaction.reply({ content: 'Invalid channel selected. Please select a text channel.', ephemeral: false });
-        return;
-    }
-
-    try {
-        // Send the message to the selected channel
-        await channel.send(messageToSend);
-        await interaction.reply({ content: `Message received. Output to #${channel.name} successfully.`, ephemeral: false });
-    } catch (error) {
-        // Error handling
-        console.error('Error sending message:', error);
-        await interaction.reply({ content: 'Failed to send the message. Please check my permissions and try again.', ephemeral: false });
-    }
-}
-
-module.exports = { handle };
+        // Send the message to the specified channel
+        await channel.send(messageContent);
+        await interaction.reply({ content: 'Message sent successfully!', ephemeral: false });
+    },
+};
