@@ -1,0 +1,52 @@
+# Configuration files with sensitive information
+config.json
+
+# Dependency directory
+node_modules/
+
+# Environment configuration
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.vscode-server/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# nvm configuration
+.nvm/
+
+# npm cache and logs
+.npm/
+npm-debug.log*
+
+# pm2 daemon files
+.pm2/
+
+# Python virtual environments
+.python_history
+
+# Bash history file
+.bash_history
+
+# SSH configuration
+.ssh/
+
+# Wget hsts file
+.wget-hsts
+
+# Package lock files (uncomment if you want to ignore these)
+# package-lock.json
+# yarn.lock
+
+# Temp files
+*.log
+tmp/
+
+# Directory with cloned repositories (if it's not part of your project)
+SinJohDex/
