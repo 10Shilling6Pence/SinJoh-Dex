@@ -1,9 +1,16 @@
 // roleSelection.js
-const customLog = require('./consoleLog');
 const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
 
 async function sendRoleSelectionMessage(client) {
-    customLog(client, 'Sending role selection message...');
+    console.log("Sending role selection message...");
+    //const roles = [
+        //{ label: 'Pearl', description: 'Select if you play Pokemon Pearl', value: '1195763170208383066' },
+        //{ label: 'Diamond', description: 'Select if you play Pokemon Diamond', value: '1195763281642672228' },
+        //{ label: 'Platinum', description: 'Select if you play Pokemon Platinum', value: '1195763444616532080' },
+        //{ label: 'SoulSilver', description: 'Select if you play Pokemon SoulSilver', value: '1195530702133940335' },
+       // { label: 'HeartGold', description: 'Select if you play Pokemon HeartGold', value: '1195530599616749628' },
+        // ... other roles ...
+    //];
 
     const selectMenu = new StringSelectMenuBuilder()
         .setCustomId('select-role')
@@ -49,7 +56,7 @@ async function sendRoleSelectionMessage(client) {
         }
         
         await channel.send({ embeds: [embed], components: [row] });
-        customLog(client, 'Role selection message sent successfully.');
+        console.log("Role selection message sent successfully.");
     } catch (error) {
         console.error('Error sending role selection message:', error);
     }
@@ -57,6 +64,7 @@ async function sendRoleSelectionMessage(client) {
 
 async function handleRoleSelection(interaction) {
     const selectedValue = interaction.values[0];
+    console.log(`Selected Role ID: ${selectedValue}`);
 
     // IDs of all roles that can be selected
     const allRoleIds = ['1195763170208383066', '1195763281642672228', '1195763444616532080', '1195530599616749628', '1195530702133940335'];
@@ -80,9 +88,6 @@ async function handleRoleSelection(interaction) {
             throw new Error('Role not found');
         }
         await interaction.member.roles.add(roleToAdd);
-
-        // Log the action here, after the role has been successfully added
-        customLog(interaction.client, `${interaction.user.username} has been given the ${roleToAdd.name} role.`);
 
         await interaction.reply({ content: `You have been given the ${roleToAdd.name} role!`, ephemeral: true });
     } catch (error) {
