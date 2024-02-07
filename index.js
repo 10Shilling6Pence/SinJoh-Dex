@@ -1,91 +1,80 @@
-const { Client, GatewayIntentBits, ChannelType } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
+const fs = require('fs');
 const roleSelection = require('./roleSelection');
-const createmessage = require('./commands/createmessage');
-const currentmessage = require('./commands/currentmessage');
-const shutdown = require('./commands/shutdown');
+const customLog = require('./consoleLog');
+const { setupMessageLogging } = require('./messageLogger');
+const { fetchNewRedditPosts } = require('./reddit'); // Ensure reddit.js is correctly required
+const config = require('./config.json');
 
 // Initialize the Discord client
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent] });
-
-// When the bot is ready, register the slash commands
-client.once('ready', async () => {
-    const data = [
-        {
-            name: 'ping',
-            description: 'Replies with Pong!'
-        },
-        {
-            name: 'shutdown',
-            description: 'Shuts down the bot'
-        },
-        {
-            name: 'createmessage',
-            description: 'Creates a message in a specified channel',
-            options: [
-                {
-                    type: 7, // Channel type
-                    name: 'channel',
-                    description: 'The channel to send the message to',
-                    required: true
-                },
-                {
-                    type: 3, // String type for the message
-                    name: 'message',
-                    description: 'The message to send',
-                    required: true
-                }
-            ]
-        },
-        {
-            name: 'currentmessage',
-            description: 'Designate a target message.',
-            options: [
-                {
-                    type: 7, // Channel type
-                    name: 'channel',
-                    description: 'The channel of the target message',
-                    required: true
-                },
-                {
-                    type: 3, // String type for the Message ID
-                    name: 'messageid',
-                    description: 'The ID of the target message',
-                    required: true
-                }
-            ]
-        }
-    ];
-
-    // Send the role selection message
-    console.log('Bot is ready. Preparing to send role selection message.');
-    roleSelection.sendRoleSelectionMessage(client);
-
-    // Register the commands globally or for a specific guild
-    await client.application?.commands.set(data);
-    console.log('Successfully registered application commands.');
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
-// Handling the interaction for the slash commands
-let targetMessage = null;
+client.commands = new Map();
 
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+
+// Dynamically import commands
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+    client.commands.set(command.data.name, command);
+}
+
+client.once('ready', async () => {
+    customLog(client, 'Bot is ready and operational.');
+    setupMessageLogging(client, config.logChannelId); // Corrected variable name
+
+    // Register commands
+    const commandsData = Array.from(client.commands.values()).map(cmd => cmd.data.toJSON());
+    try {
+        await client.application?.commands.set(commandsData);
+        customLog(client, 'Successfully registered application commands.');
+    } catch (error) {
+        console.error('Error registering commands:', error);
+    }
+
+    // Additional setup like sending role selection messages
+    roleSelection.sendRoleSelectionMessage(client);
+
+    // Schedule Reddit post checking and posting to Discord
+    setInterval(async () => {
+        try {
+            const newPosts = await fetchNewRedditPosts(config.subredditName);
+            const channel = await client.channels.fetch(config.discordChannelId);
+            for (const post of newPosts) {
+                const message = `New post on r/${config.subredditName}\n**${post.title}**\n${post.url}`;
+                await channel.send(message);
+            }
+        } catch (error) {
+          console.error('Error fetching or sending posts:', error);
+        }
+    }, 60000); // Check every 60 seconds, adjust as needed
+});
+
+// Handling the interaction for the slash commands and select menus
 client.on('interactionCreate', async interaction => {
     if (interaction.isCommand()) {
-        const { commandName } = interaction;
-
-        if (commandName === 'ping') {
-            await interaction.reply('Pong!');
-        } else if (commandName === 'shutdown') {
-            await shutdown.handle(interaction);
-        } else if (commandName === 'createmessage') {
-            await createmessage.handle(interaction);
-        } else if (commandName === 'currentmessage') {
-            await currentmessage.handle(interaction);
+        const command = client.commands.get(interaction.commandName);
+        if (!command) return;
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: 'There was an error executing that command.', ephemeral: true });
         }
-    } else if (interaction.isSelectMenu()) {
-        if (interaction.customId === 'select-role') {
+    } else if (interaction.isSelectMenu() && interaction.customId === 'select-role') {
+        try {
             await roleSelection.handleRoleSelection(interaction);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: 'There was an error processing your role selection.', ephemeral: true });
         }
     }
 });
 
-client.login('MTE5NjI3NjA5NjM0NjM1NzgyMg.Gw1Zp5.xQbhRvScMfg6f8hUNGF89-tXWg6IRfarGmgc_A');
+client.login(config.token);
