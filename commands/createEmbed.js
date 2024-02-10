@@ -16,34 +16,31 @@ module.exports = {
             option.setName('description')
                 .setDescription('Description of the embed')
                 .setRequired(true))
-        // Moved the hexcode option here, making sure it's after all required options
         .addStringOption(option => 
             option.setName('hexcode')
                 .setDescription('Hex color code for the embed (without the #). Optional.')
-                .setRequired(false)), // This confirms it's not required
+                .setRequired(false)),
     async execute(interaction) {
         const channel = interaction.options.getChannel('channel');
         const title = interaction.options.getString('title');
-        const hexcode = interaction.options.getString('hexcode');
         const description = interaction.options.getString('description');
+        let hexcode = interaction.options.getString('hexcode');
+        
+        // Parse hexcode to a number, and provide a default color if not provided
+        let color = hexcode ? parseInt(hexcode, 16) : 0x000000; // Default to white if no color provided
 
         // Ensure the channel is a guild text channel
         if (!channel || channel.type !== ChannelType.GuildText) {
-            await interaction.reply({ content: 'Please select a valid text channel.', ephemeral: false });
+            await interaction.reply({ content: 'Please select a valid text channel.', ephemeral: true });
             return;
         }
 
         const embed = new EmbedBuilder()
             .setTitle(title)
             .setDescription(description)
-            .setColor(color); // Customizable
+            .setColor(color); // Set the color of the embed
 
         // Send the embed to the specified channel
-        if (!channel || channel.type !== ChannelType.GuildText) {
-            await interaction.reply({ content: 'Please select a valid text channel.', ephemeral: true });
-            return;
-        }
-
         await channel.send({ embeds: [embed] });
         await interaction.reply({ content: 'Embed message sent successfully!', ephemeral: true });
     },
