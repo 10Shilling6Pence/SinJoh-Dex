@@ -3,7 +3,7 @@ const fs = require('fs');
 const roleSelection = require('./roleSelection');
 const customLog = require('./consoleLog');
 const { setupMessageLogging } = require('./messageLogger');
-const { fetchNewRedditPosts } = require('./reddit'); // Ensure reddit.js is correctly required
+const { fetchNewRedditPosts, checkRssFeedAndPost } = require('./reddit'); // Ensure reddit.js is correctly required
 const config = require('./config.json');
 
 // Initialize the Discord client
@@ -45,7 +45,7 @@ client.once('ready', async () => {
     setInterval(async () => {
         try {
             const newPosts = await fetchNewRedditPosts(config.subredditName);
-            const channel = await client.channels.fetch(config.discordChannelId);
+            const channel = await client.channels.fetch(config.redditChannelId);
             for (const post of newPosts) {
                 const message = `New post on r/${config.subredditName}\n**${post.title}**\n${post.url}`;
                 await channel.send(message);
@@ -54,6 +54,10 @@ client.once('ready', async () => {
           console.error('Error fetching or sending posts:', error);
         }
     }, 60000); // Check every 60 seconds, adjust as needed
+
+    setInterval(async () => { //Reddit RSS
+      await checkRssFeedAndPost(client, config.redditChannelId); 
+  }, 60000);
 });
 
 // Handling the interaction for the slash commands and select menus
