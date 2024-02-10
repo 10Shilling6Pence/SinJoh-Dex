@@ -1,4 +1,3 @@
-// consoleLog.js
 const { ChannelType } = require('discord.js');
 const config = require('./config.json');
 
@@ -26,4 +25,4 @@ function customLog(client, message) {
     }
 }
 
-module.exports = customLog;
+module.exports = { customLog };
