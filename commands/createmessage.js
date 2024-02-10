@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, ChannelType } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,7 +17,7 @@ module.exports = {
         const messageContent = interaction.options.getString('message');
 
         // Ensure the channel is a guild text channel
-        if (!channel || channel.type !== 'GUILD_TEXT') {
+        if (!channel || channel.type !== ChannelType.GuildText) {
             await interaction.reply({ content: 'Please select a valid text channel.', ephemeral: false });
             return;
         }
