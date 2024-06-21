@@ -1,40 +1,84 @@
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./SinJohDexDB.sqlite', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
-    if (err) console.log('Error opening database', err);
-    else console.log('Database connected!');
+const sqlite3 = require('sqlite3').verbose(); // Import the SQLite3 library with verbose output
+const db = new sqlite3.Database('./SinJohDexDB.sqlite'); // Connect to the existing database file
+
+// Create tables if they don't exist
+db.serialize(() => {
+    // Create 'posted_posts' table to store post information
+    db.run('CREATE TABLE IF NOT EXISTS posted_posts (id TEXT PRIMARY KEY, title TEXT, url TEXT)');
+    // Create 'user_codes' table to store user game codes
+    db.run('CREATE TABLE IF NOT EXISTS user_codes (discord_id TEXT, game TEXT, code TEXT, PRIMARY KEY (discord_id, game))');
+    console.log('Ensured posted_posts and user_codes tables exist.'); // Log table creation/verification
 });
 
-// Initialize the table
-db.run(`CREATE TABLE IF NOT EXISTS postedEntries (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    postId TEXT UNIQUE,
-    title TEXT,
-    url TEXT,
-    datePosted DATETIME DEFAULT CURRENT_TIMESTAMP
-)`);
-
-// Function to insert a new post
-function insertNewPost(postId, title, url) {
-    console.log(`Inserting post: ${postId}.`)
+// Function to insert a new post into the 'posted_posts' table
+function insertNewPost(id, title, url) {
     return new Promise((resolve, reject) => {
-        const query = `INSERT INTO postedEntries(postId, title, url) VALUES (?, ?, ?)`;
-        db.run(query, [postId, title, url], function(err) {
-            if (err) reject(err);
-            else resolve(this.lastID);
+        console.log(`Attempting to insert post with ID ${id}`); // Log the attempt to insert
+        const stmt = db.prepare('INSERT INTO posted_posts (id, title, url) VALUES (?, ?, ?)');
+        stmt.run(id, title, url, function (err) {
+            if (err) {
+                console.error('Error inserting post ID:', err); // Log any errors
+                reject(err); // Reject the promise if there's an error
+            } else {
+                console.log(`Inserted post with ID ${id}`); // Log successful insertion
+                resolve(); // Resolve the promise if successful
+            }
+        });
+        stmt.finalize(); // Finalize the statement to free up resources
+    });
+}
+
+// Function to check if a post exists in the 'posted_posts' table
+function checkPostExists(id) {
+    return new Promise((resolve, reject) => {
+        console.log(`Checking if post with ID ${id} exists`); // Log the check attempt
+        db.get('SELECT 1 FROM posted_posts WHERE id = ?', [id], (err, row) => {
+            if (err) {
+                console.error('Error checking post ID:', err); // Log any errors
+                reject(err); // Reject the promise if there's an error
+            } else {
+                console.log(`Check result for post ID ${id}: ${!!row}`); // Log the result of the check
+                resolve(!!row); // Resolve the promise with a boolean indicating existence
+            }
         });
     });
 }
 
-// Function to check if a post already exists
-function checkPostExists(postId) {
-    console.log(`Checking if post exists: ${postId}`);
+// Function to register a user code in the 'user_codes' table
+function registerUserCode(discordId, game, code) {
     return new Promise((resolve, reject) => {
-        const query = `SELECT postId FROM postedEntries WHERE postId = ?`;
-        db.get(query, [postId], (err, row) => {
-            if (err) reject(err);
-            else resolve(!!row);
+        console.log(`Attempting to register code for user ${discordId}`); // Log the registration attempt
+        // Prepare the SQL statement with conflict handling to update existing entries
+        const stmt = db.prepare('INSERT INTO user_codes (discord_id, game, code) VALUES (?, ?, ?) ON CONFLICT(discord_id, game) DO UPDATE SET code=excluded.code');
+        stmt.run(discordId, game, code, function (err) {
+            if (err) {
+                console.error('Error registering user code:', err); // Log any errors
+                reject(err); // Reject the promise if there's an error
+            } else {
+                console.log(`Registered code for user ${discordId}`); // Log successful registration
+                resolve(); // Resolve the promise if successful
+            }
+        });
+        stmt.finalize(); // Finalize the statement to free up resources
+    });
+}
+
+// Function to get user codes from the 'user_codes' table
+function getUserCodes(discordId) {
+    return new Promise((resolve, reject) => {
+        console.log(`Fetching codes for user ${discordId}`); // Log the fetch attempt
+        // Execute the query to fetch codes for the user
+        db.all('SELECT game, code FROM user_codes WHERE discord_id = ?', [discordId], (err, rows) => {
+            if (err) {
+                console.error('Error fetching user codes:', err); // Log any errors
+                reject(err); // Reject the promise if there's an error
+            } else {
+                console.log(`Fetched codes for user ${discordId}`); // Log successful fetch
+                resolve(rows); // Resolve the promise with the fetched rows
+            }
         });
     });
 }
 
-module.exports = { insertNewPost, checkPostExists };
+// Export the functions for use in other modules
+module.exports = { insertNewPost, checkPostExists, registerUserCode, getUserCodes };
