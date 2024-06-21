@@ -5,7 +5,8 @@
     "express": "^4.18.2",
     "fs": "^0.0.1-security",
     "node": "^21.6.1",
-    "snoowrap": "^1.15.2",
+    "rss-parser": "^3.13.0",
+    "snoowrap": "^1.23.0",
     "sqlite3": "^5.1.7"
   },
   "name": "luxbotjs",
